@@ -1,0 +1,57 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+    @template aiplacement_courseassist/action_button
+    @package    ai_placement_callextensions
+
+    Example context (json):
+    {
+        "action": "generate-glossary-entries",
+        "cmid": "1",
+        "component": "mod_glossary",
+        "buttontitle": "Add to content",
+        "buttonlabel": "Add to content"
+    }
+}}
+
+<div class="call-extension-controls pt-3 pb-3">
+    <button class="btn btn-primary action-button"
+            type="button"
+            data-ai-action="{{action}}"
+            data-cmid="{{cmid}}"
+            data-contextid="{{contextid}}"
+            data-component="{{component}}"
+            data-toggle="tooltip"
+            data-html="true"
+            data-delay="200"
+            title="{{buttontitle}}"
+            id="id-{{uniqid}}"
+    >
+        <span class="ai-call-extension-controls-sparkle-icon white">
+            {{#pix}} sparkles, aiplacement_courseassist {{/pix}}
+        </span>
+        <span class="ai-course-summarise-sparkles-icon white">
+            {{#pix}} sparkles-white, aiplacement_courseassist {{/pix}}
+        </span>
+        {{buttonlabel}}
+    </button>
+    {{> core_message/message_jumpto }}
+</div>
+{{#js}}
+    require(['aiplacement_callextensions/placement'], function(CALLExtensionAssist) {
+        const AI = new CALLExtensionAssist('#id-{{uniqid}}');
+    });
+{{/js}}
