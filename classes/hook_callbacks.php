@@ -16,7 +16,6 @@
 
 namespace aiplacement_callextensions;
 
-use aiplacement_callextensions\local\mod_glossary_extension;
 use core\hook\output\after_http_headers;
 use core\hook\output\before_footer_html_generation;
 
@@ -28,14 +27,13 @@ use core\hook\output\before_footer_html_generation;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class hook_callbacks {
-
     /**
      * Bootstrap the course assist UI.
      *
      * @param before_footer_html_generation $hook
      */
     public static function before_footer_html_generation(before_footer_html_generation $hook): void {
-        $extension = utils::get_extension_from_context($hook->renderer->get_page()->context);
+        $extension = extension_factory::create($hook->renderer->get_page()->context);
         if ($extension  && $extension->is_enabled()) {
             $extension->before_footer_html_generation($hook);
         }
@@ -47,7 +45,7 @@ class hook_callbacks {
      * @param after_http_headers $hook
      */
     public static function after_http_headers(after_http_headers $hook): void {
-        $extension = utils::get_extension_from_context($hook->renderer->get_page()->context);
+        $extension = extension_factory::create($hook->renderer->get_page()->context);
         if ($extension  && $extension->is_enabled()) {
             $extension->after_http_headers($hook);
         }

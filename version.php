@@ -26,6 +26,10 @@ defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'aiplacement_callextensions';
 $plugin->release = '0.1.0';
-$plugin->version = 2025081003;
-$plugin->requires = 2022112800;
+$plugin->version = 2025081009;
+$plugin->requires = 2024100700.00;
 $plugin->maturity = MATURITY_ALPHA;
+$plugin->dependencies = [
+    'aiprovider_openai_tts' => ANY_VERSION,
+    'local_aixtension' => ANY_VERSION,
+];

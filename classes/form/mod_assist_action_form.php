@@ -16,9 +16,12 @@
 
 namespace aiplacement_callextensions\form;
 
+use aiplacement_callextensions\extension_factory;
+use aiplacement_callextensions\local\base;
 use aiplacement_callextensions\utils;
 use context;
 use core_component;
+use core_external\external_api;
 use core_form\dynamic_form;
 use moodle_exception;
 use moodle_url;
@@ -33,11 +36,14 @@ use moodle_url;
 class mod_assist_action_form extends dynamic_form {
 
     /**
-     * The current step in the form wizard.
-     *
-     * @var int $currentStep
+     * @var context|null The current context, if set
      */
-    private int $currentStep = 1;
+    protected ?context $currentcontext = null;
+
+    /**
+     * @var base|null The base extension instance, if set
+     */
+    protected ?base $extension = null;
 
     /**
      * Process the dynamic form submission.
@@ -47,8 +53,7 @@ class mod_assist_action_form extends dynamic_form {
      */
     public function process_dynamic_submission(): array {
         $this->check_access_for_dynamic_submission();
-        $modinfo = utils::get_extension_from_context($this->get_context_for_dynamic_submission());
-        if (empty($modinfo)) {
+        if (empty($this->extension)) {
             return [
                 'result' => false,
                 'error' => get_string('modulenotfound', 'aiplacement_callextensions'),
@@ -56,20 +61,9 @@ class mod_assist_action_form extends dynamic_form {
         }
 
         $formdata = $this->get_data();
-        $action = $this->get_action();
-        $processed = $modinfo->process_action_data($formdata, $action);
+        $processeddata = $this->extension->process_action_data($formdata, $this->get_action());
 
-        if (!$processed['success']) {
-            return [
-                'result' => true,
-                'actiondata' => $this->get_data(),
-            ];
-        }
-        return [
-            'result' => true,
-            'actiondata' => $this->get_data(),
-            'message' => $processed['message'] ?? get_string('actionprocessed', 'aiplacement_callextensions'),
-        ];
+        return $processeddata;
     }
 
     /**
@@ -96,11 +90,18 @@ class mod_assist_action_form extends dynamic_form {
      * @throws moodle_exception If module cannot be found
      */
     protected function get_context_for_dynamic_submission(): context {
+        if ($this->currentcontext !== null) {
+            return $this->currentcontext;
+        }
         $params = $this->get_cmid_and_component();
         $component = core_component::normalize_componentname($params['component']);
         [$plugintype, $pluginname] = explode('_', $component, 2);
         $cm = get_coursemodule_from_id($pluginname, $params['cmid']);
-        return \context_module::instance($cm->id);
+        $this->currentcontext = \context_module::instance($cm->id);
+        if ($this->currentcontext) {
+            $this->extension = extension_factory::create($this->currentcontext);
+        }
+        return $this->currentcontext;
     }
 
     /**
@@ -112,11 +113,9 @@ class mod_assist_action_form extends dynamic_form {
         $data = (object) [
             'cmid' => $this->optional_param('cmid', 0, PARAM_INT),
             'userid' => $this->optional_param('userid', 0, PARAM_INT),
-            'action' => $this->optional_param('action', '', PARAM_ALPHANUMEXT),
+            'actionname' => $this->optional_param('actionname', '', PARAM_ALPHANUMEXT),
             'component' => $this->optional_param('component', '', PARAM_COMPONENT),
-            'step' => $this->optional_param('step', 1, PARAM_INT),
         ];
-        $this->currentStep = $data->step ?? 1;
         $this->set_data($data);
     }
 
@@ -149,52 +148,43 @@ class mod_assist_action_form extends dynamic_form {
     }
 
     /**
-     * Define the form elements for the wizard steps.
+     * Define the form elements for the action form.
      *
      * @return void
      */
     protected function definition() {
         $mform = $this->_form;
 
-        // Hidden field to track the current step.
-        $mform->addElement('hidden', 'step');
-        $mform->setType('step', PARAM_INT);
         $mform->addElement('hidden', 'cmid');
         $mform->setType('cmid', PARAM_INT);
         $mform->addElement('hidden', 'userid');
         $mform->setType('userid', PARAM_INT);
-        $mform->addElement('hidden', 'action');
-        $mform->setType('action', PARAM_ALPHANUMEXT);
+        $mform->addElement('hidden', 'actionname');
+        $mform->setType('actionname', PARAM_ALPHANUMEXT);
         $mform->addElement('hidden', 'component');
         $mform->setType('component', PARAM_COMPONENT);
+        if ($this->extension) {
+            $this->extension->add_action_form_definitions($mform, $this->get_action());
+        }
+
     }
 
     /**
-     * Add action-specific form definitions after the main form data.
+     * Validate the form data.
      *
-     * @return void
+     * @param array $data
+     * @param array $files
+     * @return array|null
      */
-    public function definition_after_data() {
-        $mform = $this->_form;
-        $modinfo = utils::get_extension_from_context($this->get_context_for_dynamic_submission());
-        $modinfo->add_action_form_definitions($mform, $this->get_action(), $this->get_current_step());
+    public function validation($data, $files) {
+        return $this->extension?->validate_action_data($data, $files, $this->get_action());
     }
-
-    /**
-     * Get the current step from the form data or default to step 1.
-     *
-     * @return int The current step.
-     */
-    private function get_current_step(): int {
-        return $this->currentStep;
-    }
-
     /**
      * Get the action parameter from the form.
      *
      * @return string The action to be performed
      */
     private function get_action(): string {
-        return $this->optional_param('action', '', PARAM_ALPHANUMEXT);
+        return $this->optional_param('actionname', '', PARAM_ALPHANUMEXT);
     }
 }

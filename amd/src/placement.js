@@ -23,9 +23,12 @@
 
 import 'core/copy_to_clipboard';
 import Notification from 'core/notification';
-import FormWizard from 'aiplacement_callextensions/form_wizard';
 import {getString} from 'core/str';
-
+import ModalForm from 'core_form/modalform';
+import ModalDeleteCancel from 'core/modal_delete_cancel';
+import Repository from "./repository";
+import ModalEvents from 'core/modal_events';
+import Templates from 'core/templates';
 
 const CALLExtensionAssist = class {
     /**
@@ -39,23 +42,17 @@ const CALLExtensionAssist = class {
      * @type {String}
      */
     currentAction;
-    /**
-     * The current action data
-     * @type {String}
-     */
-    currentActionData;
 
     /**
-     * The current generated content data
-     * @type {String}
+     * Progress interval.
      */
-    currentGeneratedContent;
+    progressInterval;
 
     /**
      * Constructor.
      * @param {String} actionButtonSelector The selector for the action button.
      */
-    constructor(actionButtonSelector ) {
+    constructor(actionButtonSelector) {
         // Get the button by data-id attribute.
         this.actionButton = document.querySelector(actionButtonSelector);
         if (!this.actionButton) {
@@ -76,83 +73,106 @@ const CALLExtensionAssist = class {
 
         this.actionButton.addEventListener('click', async (event) => {
             event.preventDefault();
-            this.handleFormNavigation(1);
+            const isActive = await Repository.getActiveAction(this.contextId, 0);
+            if (!isActive || isActive.actionid) {
+                this.handleActionProgress(isActive.actionid);
+                return;
+            }
+            this.handleLaunchAction();
         });
     }
 
     /**
      * Handle form navigation for multi-step wizard.
-     * @param {number} step The step to navigate to. Defaults to 1.
      */
-    handleFormNavigation(step) {
-        const wizard = new FormWizard({
+    async handleLaunchAction() {
+        const actionName = await getString(`action:${this.actionButton.dataset.actionName}`, 'aiplacement_callextensions');
+        const dialogTitle = await getString('actiondialog:title', 'aiplacement_callextensions', actionName);
+        const form = new ModalForm({
             modalConfig: {
-                title: getString('wizardtitle', 'aiplacement_callextensions'),
+                title: dialogTitle,
             },
             formClass: 'aiplacement_callextensions\\form\\mod_assist_action_form',
             args: {
-                action: this.actionButton.dataset.aiAction,
                 component: this.actionButton.dataset.component,
                 cmid: this.actionButton.dataset.cmid,
-                step: step,
+                actionname: this.actionButton.dataset.actionName,
             },
-            saveButtonText: getString('next', 'aiplacement_callextensions'),
+            saveButtonText: await getString('submit'),
         });
 
-        wizard.addEventListener(wizard.events.FORM_SUBMITTED, event => {
+        form.addEventListener(form.events.FORM_SUBMITTED, event => {
             if (!event.detail.result) {
                 Notification.addNotification({
                     type: 'error',
-                    message: event.detail.errors.join('<br>')
+                    message: event.detail.message
                 });
             } else {
-                // Reload the form with updated step data.
-                this.handleFormNavigation(event.detail.actiondata.step);
+                form.hide();
+                // Reload the page to show the new content.
+                window.location.reload();
             }
         });
-
-        wizard.show();
+        form.show();
     }
 
     /**
-     * Check if the AI drawer is open.
-     * @return {boolean} True if the AI drawer is open, false otherwise.
+     * Handle an action already in progress.
+     * @param {Number} actionId The action id.
      */
-    isAIDrawerOpen() {
-        return this.aiDrawerElement.classList.contains('show');
-    }
+    async handleActionProgress(actionId) {
+        // Create a modal to show the progress.
+        const actionName = await getString(`action:${this.actionButton.dataset.actionName}`, 'aiplacement_callextensions');
+        const modal = await ModalDeleteCancel.create({
+            title: getString('actiondialog:status', 'aiplacement_callextensions', actionName),
+            large: true,
+        });
+        const updateBody = (modal, actionId) => {
+            return Repository.actionStatus(actionId).then((action) => {
+                if (!action || action.status === 3) {
+                    modal.hide();
+                    modal.destroy(); // Destroy the modal.
+                    Notification.addNotification({
+                        type: 'failure',
+                        message: getString('actiondialog:statuscheckfailure', 'aiplacement_callextensions')
+                    });
+                    clearInterval(this.progressInterval);
+                } else {
+                    if (action.status === 1 || action.status === 2) {
+                        modal.hide();
+                        modal.destroy();
+                        Notification.addNotification({
+                            type: 'failure',
+                            message: getString('actiondialog:statuscheckfailure', 'aiplacement_callextensions')
+                        });
+                        clearInterval(this.progressInterval);
+                    } else {
+                        const content = Templates.renderForPromise('aiplacement_callextensions/progress', action);
+                        modal.setBodyContent(content);
+                    }
+                }
+            }).catch(Notification.exception);
+        };
+        modal.getRoot().on(ModalEvents.delete, () => {
+            clearInterval(this.progressInterval);
+            Repository.cancelAction(actionId).then(() => {
+                modal.hide();
+                modal.destroy(); // Destroy the modal.
+                Notification.addNotification({
+                    type: 'success',
+                    message: getString('actiondialog:cancelled', 'aiplacement_callextensions')
+                });
+            }).catch(Notification.exception);
+        });
+        modal.setDeleteButtonText(await getString('actiondialog:cancel', 'aiplacement_callextensions'));
+        // Initial body update.
+        await updateBody(modal, actionId);
+        const refreshHandler = () =>
+            updateBody(modal, actionId).then((shouldContinue) => !shouldContinue && clearInterval(this.progressInterval));
+        // Refresh the progress every 5 seconds.
+        this.progressInterval = setInterval(refreshHandler, 5000);
 
-    /**
-     * Open the AI drawer.
-     */
-    openAIDrawer() {
-        this.aiDrawerElement.classList.add('show');
-    }
-
-    /**
-     * Close the AI drawer.
-     */
-    closeAIDrawer() {
-        this.aiDrawerElement.classList.remove('show');
-    }
-
-    /**
-     * Toggle the AI drawer.
-     */
-    toggleAIDrawer() {
-        if (this.isAIDrawerOpen()) {
-            this.closeAIDrawer();
-        } else {
-            this.openAIDrawer();
-        }
-    }
-
-    /**
-     * Clear actions.
-     */
-    clearActions() {
-        this.aiDrawerBodyElement.dataset.currentAction = '';
-        this.aiDrawerBodyElement.dataset.currentActionData = '';
+        modal.show();
     }
 };
 

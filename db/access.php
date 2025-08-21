@@ -34,4 +34,13 @@ $capabilities = [
             'student' => CAP_ALLOW,
         ],
     ],
+    'aiplacement/callextensions:runaction' => [
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => [
+            'manager' => CAP_ALLOW,
+            'user' => CAP_ALLOW,
+            'guest' => CAP_PREVENT,
+        ],
+    ],
 ];

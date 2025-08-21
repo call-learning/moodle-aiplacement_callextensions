@@ -13,12 +13,10 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
-
 namespace aiplacement_callextensions;
 
-use core_ai\aiactions\summarise_text;
-use core_ai\manager;
-use mod_lti\output\renderer;
+
+use aiplacement_callextensions\local\base;
 
 /**
  * AI Placement course assist utils.
@@ -32,9 +30,10 @@ class utils {
      * Check if AI Placement course assist is available for the context.
      *
      * @param \context $context The context.
+     * @param \stdClass $user The user for whom the check is being performed.
      * @return bool True if AI Placement course assist is available, false otherwise.
      */
-    public static function is_assist_available(\context $context): bool {
+    public static function is_assist_available(\context $contex, \stdClass $user): bool {
         [$plugintype, $pluginname] = explode('_', \core_component::normalize_componentname('aiplacement_callextensions'), 2);
         $manager = \core_plugin_manager::resolve_plugininfo_class($plugintype);
         if (!$manager::is_plugin_enabled($pluginname)) {
@@ -84,68 +83,28 @@ class utils {
      * Perform generic preflight checks for AI Placement actions.
      *
      * @param \context $context The context to check.
+     * @param \stdClass $user The user for whom the checks are being performed.
      * @return bool True if all checks pass, false otherwise.
      */
-    public static function generic_preflight_checks(\context $context): bool {
-        global $PAGE;
-
+    public static function generic_preflight_checks(\context $context, \stdClass $user): bool {
         // Check if we are during initial install.
         if (during_initial_install()) {
             return false;
         }
 
         // Check if the current page is a course page.
-        if ($PAGE->context->contextlevel !== CONTEXT_MODULE) {
+        if ($context->contextlevel !== CONTEXT_MODULE) {
             return false;
         }
 
         // Check if the user has the capability to use AI Placement.
-        if (!has_capability('aiplacement/callextensions:use', $PAGE->context)) {
+        if (!has_capability('aiplacement/callextensions:use', $context, $user->id)) {
             return false;
         }
-        if (!self::is_assist_available($context)) {
+        if (!self::is_assist_available($context, $user)) {
             return false;
         }
 
         return true;
     }
-
-    /**
-     * Get the extension instance for a given context.
-     *
-     * @param \context $context The context for which the module info is being requested.
-     * @param string|null $expectedmodule The expected module name, if any.
-     * @return local\base|null The module extension instance or null if not found.
-     * @throws \coding_exception
-     */
-    public static function get_extension_from_context(\context $context, ?string $expectedmodule = null): ?local\base {
-        global $OUTPUT, $USER;
-
-        // Get the course module
-        $cm = get_coursemodule_from_id(
-            $expectedmodule ?? '',
-            $context->instanceid
-        );
-        if (!$cm) {
-            return null;
-        }
-        if ($expectedmodule && $cm->modname !== $expectedmodule) {
-            // If an expected module is provided, check if it matches the current module.
-            return null;
-        }
-
-        // Construct the extension class name based on the module name
-        $extensionclass = "\\aiplacement_callextensions\\local\\mod_{$cm->modname}_extension";
-
-        if (!class_exists($extensionclass)) {
-            return null;
-        }
-        $extension = new $extensionclass($OUTPUT, $context, $USER);
-        // Check if the extension is enabled for this context
-        if (!$extension->is_enabled()) {
-            return null;
-        }
-        return $extension;
-    }
-
 }
