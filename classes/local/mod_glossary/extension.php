@@ -152,7 +152,14 @@ class extension extends base {
 
         if ($action->get('actionname') === 'glossary_generate_definitions') {
             $wordlist = $data['wordlist'] ?? [];
-            $content = get_string('glossary_generate_definitions:wordlistinfo', 'aiplacement_callextensions', implode(', ', $wordlist));
+            $content = get_string(
+                'glossary_generate_definitions:wordlistinfo',
+                'aiplacement_callextensions',
+                implode(
+                    ', ',
+                    $wordlist
+                )
+            );
         }
         return $content;
     }
@@ -163,27 +170,27 @@ class extension extends base {
      * @return array The processed result.
      */
     private function process_generate_definition(object $data): array {
-        $concept = trim($data->wordlist ?? '');
-        $context = trim($data->context ?? '');
+        $wordlist = trim($data->wordlist ?? '');
 
-        if (empty($concept)) {
+        if (empty($wordlist)) {
             return [
                 'success' => false,
                 'message' => get_string('conceptrequired', 'aiplacement_callextensions'),
             ];
         }
-        $prompt = "Générez une définition claire et concise pour le concept suivant : \"{$concept}\"";
-        if (!empty($context)) {
-            $prompt .= "\n\nContexte : {$context}";
-        }
-        $data = [
-            'wordlist' => array_map('trim', explode("\n", $concept)),
-            'prompt' => $prompt,
+        $datakeys = [
+          'wordlist',
+            'imagesize',
+            'imageprompt',
+            'textprompt',
+            'voice',
         ];
-        $this->launch_action('glossary_generate_definitions', $data);
+        $launchdata = array_intersect_key((array) $data, array_flip($datakeys));
+        $launchdata['wordlist'] = array_filter(array_map('trim', explode("\n", $launchdata['wordlist'])));
+        $this->launch_action('glossary_generate_definitions', $launchdata);
         return [
             'success' => true,
-            'data' => $data,
+            'data' => $launchdata,
             'message' => get_string('glossary_generate_definitions:actionstarted', 'aiplacement_callextensions'),
         ];
     }
@@ -196,9 +203,7 @@ class extension extends base {
      * @return array The processed result.
      */
     private function process_default_action(object $data, string $action): array {
-        $prompt = trim($data->prompt ?? '');
-
-        if (empty($prompt)) {
+        if (empty($data)) {
             return [
                 'success' => false,
                 'error' => get_string('promptrequired', 'aiplacement_callextensions'),
@@ -207,7 +212,6 @@ class extension extends base {
 
         return [
             'success' => true,
-            'prompt' => $prompt,
             'action_type' => $action,
         ];
     }
