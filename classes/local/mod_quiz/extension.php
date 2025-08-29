@@ -63,6 +63,9 @@ class extension extends base {
 
     #[\Override]
     public function after_http_headers(after_http_headers $hook): void {
+        if (!has_capability('mod/quiz:manage', $this->context)) {
+            return;
+        }
         $context = [
             "cmid" => $this->context->instanceid,
             'contextid' => $this->context->id,
