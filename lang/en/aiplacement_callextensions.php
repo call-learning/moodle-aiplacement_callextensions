@@ -26,6 +26,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['action:glossary_generate_definitions'] = 'Generate definition';
+$string['action:quiz_generate_questions'] = 'Generate questions';
 $string['action:status_cancelled'] = 'Cancelled';
 $string['action:status_error'] = 'Error';
 $string['action:status_finished'] = 'Finished';
@@ -81,3 +82,39 @@ $string['pleasewait'] = 'Please wait...';
 $string['pluginname'] = 'AI Extension';
 $string['privacy:metadata'] = 'The AI Placement Call Extensions plugin does not store any personal data.';
 $string['progressfor'] = 'Progress for {$a}';
+$string['quiz_generate_questions'] = 'Generate questions for a quiz and import them in a gift format';
+$string['quiz_generate_questions:actionstarted'] = 'The action has been started';
+$string['quiz_generate_questions:context'] = 'The context for the questions';
+$string['quiz_generate_questions:context_help'] = 'A description of the context of the question.';
+$string['quiz_generate_questions:contextdefault'] = 'Generate a set of questions suitable for a B1 level English learner in the context of a business English course focusing on communication skills in a corporate environment.';
+$string['quiz_generate_questions:contextheader'] = 'Context settings';
+$string['quiz_generate_questions:contextrequired'] = 'Context is required';
+$string['quiz_generate_questions:difficulty'] = 'Question difficulty';
+$string['quiz_generate_questions:difficulty:easy'] = 'Easy';
+$string['quiz_generate_questions:difficulty:hard'] = 'Hard';
+$string['quiz_generate_questions:difficulty:medium'] = 'Medium';
+$string['quiz_generate_questions:difficulty_help'] = 'The difficulty of the questions to generate.';
+$string['quiz_generate_questions:numquestions'] = 'Number of questions to generate';
+$string['quiz_generate_questions:numquestions_help'] = 'The number of questions to generate.';
+$string['quiz_generate_questions:processingquestion'] = 'Processing question: {$a}';
+$string['quiz_generate_questions:qcontextrequired'] = 'You must provide a context for the questions.';
+$string['quiz_generate_questions:questioncategory'] = 'Question category';
+$string['quiz_generate_questions:questioncategory_help'] = 'The category in the question bank where the questions will be created.';
+$string['quiz_generate_questions:questiontype'] = 'Question type';
+$string['quiz_generate_questions:questiontype_help'] = 'The type of questions to generate.';
+$string['quiz_generate_questions:quiztitle'] = 'Quiz title';
+$string['quiz_generate_questions:quiztitle_help'] = 'The title of the quiz for which the questions will be generated.';
+$string['quiz_generate_questions:textprompt'] = 'Text prompt for question generation';
+$string['quiz_generate_questions:textpromptdefault'] = 'You are an expert educational content creator. Generate a SINGLE question for that quiz.
+OUTPUT FORMAT
+Return the questions in a GIFT format with one question, suitable for import in Moodle.
+RULES
+- Do not include any extra text, only the GIFT format and no comments.
+- For multiple choice questions, provide 4 choices, with one correct answer and three plausible distractors.
+- For true/false questions, provide a statement that is clearly true or false.
+- For short answer questions, provide a question that can be answered with a single word or a short phrase.
+- Ensure the questions are clear, concise, and free of ambiguity.
+- Avoid using proper nouns or very specific knowledge that may not be known to all learners.
+- Ensure the questions are relevant to the quiz title and appropriate for the specified difficulty level.';
+$string['quiz_generate_questions:additionaloptionsheader'] = 'Additional options';
+$string['quiz_generate_questions:voicetext'] = 'Voice for sound generation';

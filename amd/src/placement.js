@@ -104,7 +104,7 @@ const CALLExtensionAssist = class {
         form.addEventListener(form.events.FORM_SUBMITTED, event => {
             if (!event.detail.result) {
                 Notification.addNotification({
-                    type: 'error',
+                    type: 'info',
                     message: event.detail.message
                 });
             } else {
@@ -128,13 +128,13 @@ const CALLExtensionAssist = class {
             large: true,
         });
         const updateBody = (modal, actionId) => {
-            return Repository.actionStatus(actionId).then((action) => {
+            return Repository.actionStatus(actionId).then(async (action) => {
                 if (!action || action.status === 3) {
                     modal.hide();
                     modal.destroy(); // Destroy the modal.
                     Notification.addNotification({
                         type: 'failure',
-                        message: getString('actiondialog:statuscheckfailure', 'aiplacement_callextensions')
+                        message: await getString('actiondialog:statuscheckfailure', 'aiplacement_callextensions')
                     });
                     clearInterval(this.progressInterval);
                 } else {
@@ -143,7 +143,7 @@ const CALLExtensionAssist = class {
                         modal.destroy();
                         Notification.addNotification({
                             type: 'failure',
-                            message: getString('actiondialog:statuscheckfailure', 'aiplacement_callextensions')
+                            message: await getString('actiondialog:statuscheckfailure', 'aiplacement_callextensions')
                         });
                         clearInterval(this.progressInterval);
                     } else {
@@ -155,12 +155,12 @@ const CALLExtensionAssist = class {
         };
         modal.getRoot().on(ModalEvents.delete, () => {
             clearInterval(this.progressInterval);
-            Repository.cancelAction(actionId).then(() => {
+            Repository.cancelAction(actionId).then(async () => {
                 modal.hide();
                 modal.destroy(); // Destroy the modal.
                 Notification.addNotification({
                     type: 'success',
-                    message: getString('actiondialog:cancelled', 'aiplacement_callextensions')
+                    message: await getString('actiondialog:cancelled', 'aiplacement_callextensions', actionName)
                 });
             }).catch(Notification.exception);
         });

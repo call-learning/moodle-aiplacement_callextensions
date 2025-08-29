@@ -153,12 +153,14 @@ class mod_assist_action_form extends dynamic_form {
      * @return void
      */
     protected function definition() {
+        global $USER;
         $mform = $this->_form;
 
         $mform->addElement('hidden', 'cmid');
         $mform->setType('cmid', PARAM_INT);
         $mform->addElement('hidden', 'userid');
         $mform->setType('userid', PARAM_INT);
+        $mform->setDefault('userid', $USER->id);
         $mform->addElement('hidden', 'actionname');
         $mform->setType('actionname', PARAM_ALPHANUMEXT);
         $mform->addElement('hidden', 'component');
