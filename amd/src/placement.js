@@ -29,6 +29,8 @@ import ModalDeleteCancel from 'core/modal_delete_cancel';
 import Repository from "./repository";
 import ModalEvents from 'core/modal_events';
 import Templates from 'core/templates';
+import Policy from 'core_ai/policy';
+import ModalSaveCancel from "core/modal_save_cancel";
 
 const CALLExtensionAssist = class {
     /**
@@ -49,6 +51,12 @@ const CALLExtensionAssist = class {
     progressInterval;
 
     /**
+     * Current user ID.
+     * @type {Integer}
+     */
+    userId;
+
+    /**
      * Constructor.
      * @param {String} actionButtonSelector The selector for the action button.
      */
@@ -59,7 +67,7 @@ const CALLExtensionAssist = class {
             return;
         }
         this.contextId = this.actionButton.dataset.contextid ? parseInt(this.actionButton.dataset.contextid, 10) : 0;
-
+        this.userId = M.cfg.userId;
         this.registerEventListeners();
     }
 
@@ -73,6 +81,11 @@ const CALLExtensionAssist = class {
 
         this.actionButton.addEventListener('click', async (event) => {
             event.preventDefault();
+            const isPolicyAccepted = await this.isPolicyAccepted();
+            if (!isPolicyAccepted) {
+                this.displayPolicy();
+                return;
+            }
             const isActive = await Repository.getActiveAction(this.contextId, 0);
             if (!isActive || isActive.actionid) {
                 this.handleActionProgress(isActive.actionid);
@@ -173,6 +186,40 @@ const CALLExtensionAssist = class {
         this.progressInterval = setInterval(refreshHandler, 5000);
 
         modal.show();
+    }
+
+
+    /**
+     * Display the policy.
+     */
+    async displayPolicy() {
+        const title = await getString('aiusagepolicy', 'core_ai');
+        const acceptLabel = await getString('policyaccept');
+        const usagePolicy = await getString ('userpolicy','core_ai');
+        const modal = await ModalSaveCancel.create({
+            title: title,
+            body: usagePolicy,
+        });
+        modal.setSaveButtonText(acceptLabel);
+        modal.show();
+        modal.getRoot().on(ModalEvents.save, async () => {
+            try {
+                await Policy.acceptPolicy();
+                modal.hide();
+                modal.destroy();
+                this.handleLaunchAction();
+            } catch (error) {
+                Notification.exception(error);
+            }
+        });
+    }
+
+    /**
+     * Check if the policy is accepted.
+     * @return {bool} True if the policy is accepted, false otherwise.
+     */
+    async isPolicyAccepted() {
+        return await Policy.getPolicyStatus(this.userId);
     }
 };
 

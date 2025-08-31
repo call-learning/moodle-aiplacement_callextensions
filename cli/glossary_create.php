@@ -107,11 +107,12 @@ try {
         'contextid' => $context->id,
         'userid' => $admin->id,
         'actiondata' => json_encode($params),
-        'status' => ai_action::STATUS_PENDING,
+        'status' => ai_action::STATUS_RUNNING,
     ]);
     $action->save();
     $extension->execute_action($action);
     $action->set('status', ai_action::STATUS_FINISHED);
+    $action->save();
     $action->set_progress_status(100, get_string('actionstatusfinished', 'aiplacement_callextensions'));
 } finally {
     fclose($file);

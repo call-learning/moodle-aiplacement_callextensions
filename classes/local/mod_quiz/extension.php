@@ -120,8 +120,6 @@ class extension extends base {
                 'hard' => get_string('quiz_generate_questions:difficulty:hard', 'aiplacement_callextensions'),
             ]
         );
-
-        $mform->setExpanded('textpromptheader', false);
         $mform->addElement(
             'textarea',
             'textprompt',
