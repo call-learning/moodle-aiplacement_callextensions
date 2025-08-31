@@ -356,6 +356,22 @@ class extension extends base {
                     $draftfile = $response->get_response_data()['draftfile'];
                     $audiourl = $this->copy_file($entryid, $draftfile);
                 }
+                $example  = $data['example_en'] ?? '';
+                if (!empty($example)) {
+                    $action = new convert_text_to_speech(
+                        contextid: $this->context->id,
+                        userid: $this->user->id,
+                        texttoread: "{$example}",
+                        voice: $params['voice'] ?? null,
+                        format: $params['format'] ?? null,
+                    );
+                    $response = $manager->process_action($action);
+                    if ($response->get_success()) {
+                        $draftfile = $response->get_response_data()['draftfile'];
+                        $audiourlexample = $this->copy_file($entryid, $draftfile);
+                        $data['audiourlexample'] = $audiourlexample;
+                    }
+                }
 
                 $data['imageurl'] = $imageurl ? $imageurl->out(false) : '';
                 $data['audiourl'] = $audiourl ? $audiourl->out(false) : '';
