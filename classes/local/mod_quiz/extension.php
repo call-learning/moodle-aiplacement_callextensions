@@ -24,6 +24,7 @@ use core\hook\output\after_http_headers;
 use core\hook\output\before_footer_html_generation;
 use core_php_time_limit;
 use core_tag_tag;
+use mod_quiz\quiz_settings;
 use qformat_gift;
 use question_bank;
 
@@ -132,6 +133,8 @@ class extension extends base {
             get_string('quiz_generate_questions:textpromptdefault', 'aiplacement_callextensions')
         );
         // Add the question category selector.
+        $contexts = new \core_question\local\bank\question_edit_contexts($this->context);
+        question_make_default_categories($contexts->all()); // Ensure default categories exist.
         $mform->addElement(
             'questioncategory',
             'category',
@@ -261,6 +264,7 @@ class extension extends base {
 
             $aiaction->set_progress_status((int) (($currentindex + 1) / $numberofquestions * 100));
         }
+        quiz_settings::create($this->quiz->id)->get_grade_calculator()->recompute_quiz_sumgrades();
     }
 
     /**
