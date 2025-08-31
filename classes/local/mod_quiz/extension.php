@@ -16,9 +16,9 @@
 
 namespace aiplacement_callextensions\local\mod_quiz;
 
-
 use aiplacement_callextensions\ai_action;
 use aiplacement_callextensions\local\base;
+use aiplacement_callextensions\utils;
 use context_course;
 use core\hook\output\after_http_headers;
 use core\hook\output\before_footer_html_generation;
@@ -63,7 +63,12 @@ class extension extends base {
 
     #[\Override]
     public function after_http_headers(after_http_headers $hook): void {
-        if (!has_capability('mod/quiz:manage', $this->context)) {
+        if (!utils::preflight_checks_for_module(
+            $this->context,
+            'quiz', ['mod/quiz:manage'],
+            ['mod-quiz-view'],
+            $hook->renderer->get_page(),
+        )) {
             return;
         }
         $context = [
@@ -129,9 +134,12 @@ class extension extends base {
             get_string('quiz_generate_questions:textpromptdefault', 'aiplacement_callextensions')
         );
         // Add the question category selector.
-        $mform->addElement('questioncategory', 'category', get_string('category', 'question'),
-            array('contexts' => array($this->context)));
-
+        $mform->addElement(
+            'questioncategory',
+            'category',
+            get_string('category', 'question'),
+            ['contexts' => [$this->context]]
+        );
     }
 
     #[\Override]
@@ -144,21 +152,6 @@ class extension extends base {
         }
     }
 
-    #[\Override]
-    public function actiondata_to_string(ai_action $action): string {
-        $data = $action->get('actiondata') ?? [];
-
-        if ($action->get('actionname') === 'quiz_generate_questions') {
-            $context = $data['qcontext'] ?? "";
-            $numberofquestions = $data['numquestions'] ?? 5;
-            $content = get_string(
-                'quiz_generate_questions:contextinfo',
-                'aiplacement_callextensions',
-                ['count' => $numberofquestions, 'context' => $context]
-            );
-        }
-        return $content;
-    }
     /**
      * Process generate definition action.
      *
@@ -175,7 +168,7 @@ class extension extends base {
             ];
         }
         $datakeys = [
-            'qcontext', 'textprompt', 'difficulty', 'numquestions','category'
+            'qcontext', 'textprompt', 'difficulty', 'numquestions', 'category',
         ];
         $categoryfromtree = explode(",", $data->category) ?? [1];
         $data->category = (int) array_shift($categoryfromtree); // Get the category id (first item in the list).
@@ -203,6 +196,22 @@ class extension extends base {
     }
 
     #[\Override]
+    public function actiondata_to_string(ai_action $action): string {
+        $data = $action->get('actiondata') ?? [];
+
+        if ($action->get('actionname') === 'quiz_generate_questions') {
+            $context = $data['qcontext'] ?? "";
+            $numberofquestions = $data['numquestions'] ?? 5;
+            $content = get_string(
+                'quiz_generate_questions:contextinfo',
+                'aiplacement_callextensions',
+                ['count' => $numberofquestions, 'context' => $context]
+            );
+        }
+        return $content;
+    }
+
+    #[\Override]
     public function validate_action_data(array $data, array $files, string $actionname): array {
         $errors = [];
         switch ($actionname) {
@@ -225,28 +234,34 @@ class extension extends base {
         }
         $params = $aiaction->get('actiondata') ?? [];
         $context = $params['qcontext'] ?? '';
-        // Process each word.
         $manager = new \core_ai\manager();
         $currentindex = 0;
         $textprompt =
             $params['textprompt'] ?? get_string('quiz_generate_questions:textpromptdefault', 'aiplacement_callextensions');
         $numberofquestions = $params['numquestions'] ?? 5;
         $difficulty = $params['difficulty'] ?? 'medium';
-        // Get default question category for quiz.
+        $previousquestioncontent = '';
         for ($index = 0; $index < $numberofquestions; $index++) {
+            $aiaction->set_progress_status(
+                statustext: get_string(
+                    'quiz_generate_questions:processingquestion',
+                    'aiplacement_callextensions',
+                    $index + 1
+                )
+            );
             $action = new \core_ai\aiactions\generate_text(
                 contextid: $this->context->id,
                 userid: $this->user->id,
-                prompttext: "{$textprompt}\n\nCONTEXT\n{$context}\n\nDIFFICULTY\n {$difficulty}",
+                prompttext: "{$textprompt}\n\nCONTEXT\n{$context}\n\nDIFFICULTY\n {$difficulty}\n\nPREVIOUS QUESTIONS\n{$previousquestioncontent}",
             );
             $response = $manager->process_action($action);
             if ($response->get_success()) {
                 $gift = $response->get_response_data()['generatedcontent'];
+                $previousquestioncontent .= "\n\n" . $gift;
                 $this->parse_and_add_question($gift, $params['category']);
             }
 
-            $aiaction->set('progress', (int) (($currentindex + 1) / $numberofquestions * 100));
-            $aiaction->save();
+            $aiaction->set_progress_status((int) (($currentindex + 1) / $numberofquestions * 100));
         }
     }
 

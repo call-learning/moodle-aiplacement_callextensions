@@ -156,4 +156,22 @@ class ai_action extends \core\persistent {
                 return get_string('action:status_unknown', 'aiplacement_callextensions');
         }
     }
+
+    /**
+     * Set the progress and optionally the status text, then save the record.
+     *
+     * @param int|null $progress The progress value (0-100) or null to unset.
+     * @param string|null $statustext Optional status text to set.
+     * @return void
+     */
+    public function set_progress_status(?int $progress = null, ?string $statustext = null): void {
+        if (!is_null($progress)) {
+            $progress = max(0, min(100, $progress));
+            $this->raw_set('progress', $progress);
+        }
+        if (!is_null($statustext)) {
+            $this->raw_set('statustext', $statustext);
+        }
+        $this->save();
+    }
 }

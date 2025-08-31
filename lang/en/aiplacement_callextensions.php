@@ -41,14 +41,21 @@ $string['actiondialog:title'] = 'AI Action : {$a}';
 $string['actionstatuscancelled'] = 'The action has been cancelled by the user.';
 $string['actionstatuserror'] = 'The action has failed with an error.';
 $string['actionstatusfinished'] = 'The action has been completed successfully.';
+$string['actionstatusstarting'] = 'Starting...';
 $string['aiplacement/callextensions:use'] = 'Use AI Placement call extensions';
 $string['glossary_generate_definitions'] = 'Generate definitions, images and sound for a list of words';
 $string['glossary_generate_definitions:actionstarted'] = 'The action has been started';
+$string['glossary_generate_definitions:definitionitem'] = 'Definition: ';
+$string['glossary_generate_definitions:frenchdefinitionexample'] = 'Exemple: ';
+$string['glossary_generate_definitions:frenchdefinitionitem'] = 'Français: ';
 $string['glossary_generate_definitions:imageprompt'] = 'Image prompt for image generation';
 $string['glossary_generate_definitions:imagepromptdefault'] = 'Create a simple, clear and engaging image
- that illustrates the meaning of the word. The image should be suitable for an educational context. They should not contain text.';
+ that illustrates the meaning of the word. The image should be suitable for an educational context. Important : the image should NOT
+ contain any text.';
 $string['glossary_generate_definitions:imagepromptheader'] = 'Image prompt settings';
 $string['glossary_generate_definitions:imagesize'] = 'Image size';
+$string['glossary_generate_definitions:listenpronunciation'] = 'Listen to it pronounced';
+$string['glossary_generate_definitions:noaudio'] = 'Your browser does not support the audio element.';
 $string['glossary_generate_definitions:processingword'] = 'Processing word: {$a}';
 $string['glossary_generate_definitions:soundparamheader'] = 'Sound generation settings';
 $string['glossary_generate_definitions:textprompt'] = 'Text prompt for definition generation';
@@ -84,6 +91,7 @@ $string['privacy:metadata'] = 'The AI Placement Call Extensions plugin does not 
 $string['progressfor'] = 'Progress for {$a}';
 $string['quiz_generate_questions'] = 'Generate questions for a quiz and import them in a gift format';
 $string['quiz_generate_questions:actionstarted'] = 'The action has been started';
+$string['quiz_generate_questions:additionaloptionsheader'] = 'Additional options';
 $string['quiz_generate_questions:context'] = 'The context for the questions';
 $string['quiz_generate_questions:context_help'] = 'A description of the context of the question.';
 $string['quiz_generate_questions:contextdefault'] = 'Generate a set of questions suitable for a B1 level English learner in the context of a business English course focusing on communication skills in a corporate environment.';
@@ -107,7 +115,21 @@ $string['quiz_generate_questions:quiztitle_help'] = 'The title of the quiz for w
 $string['quiz_generate_questions:textprompt'] = 'Text prompt for question generation';
 $string['quiz_generate_questions:textpromptdefault'] = 'You are an expert educational content creator. Generate a SINGLE question for that quiz.
 OUTPUT FORMAT
-Return the questions in a GIFT format with one question, suitable for import in Moodle.
+
+Return the question in a GIFT format, suitable for import in Moodle.
+Examples of GIFT Format for different question types:
+::Q1:: 1+1=2 {T}
+::Q2:: What\'s between orange and green in the spectrum? 
+{ =yellow # right; good! ~red # wrong, it\'s yellow ~blue # wrong, it\'s yellow }
+::Q3:: Two plus {=two =2} equals four.
+::Q4:: Which animal eats which food? { =cat -> cat food =dog -> dog food }
+::Q5:: What is a number from 1 to 5? {#3:2}
+::Q6:: What is a number from 1 to 5? {#1..5}
+::Q7:: When was Ulysses S. Grant born? {#
+    =1822:0      # Correct! Full credit.
+    =%50%1822:2  # He was born in 1822. Half credit for being close.
+}
+
 RULES
 - Do not include any extra text, only the GIFT format and no comments.
 - For multiple choice questions, provide 4 choices, with one correct answer and three plausible distractors.
@@ -115,6 +137,6 @@ RULES
 - For short answer questions, provide a question that can be answered with a single word or a short phrase.
 - Ensure the questions are clear, concise, and free of ambiguity.
 - Avoid using proper nouns or very specific knowledge that may not be known to all learners.
-- Ensure the questions are relevant to the quiz title and appropriate for the specified difficulty level.';
-$string['quiz_generate_questions:additionaloptionsheader'] = 'Additional options';
+- Ensure the questions are relevant to the quiz title and appropriate for the specified difficulty level.
+- Do not use the same question reptitively ensuring variety in the questions generated.';
 $string['quiz_generate_questions:voicetext'] = 'Voice for sound generation';

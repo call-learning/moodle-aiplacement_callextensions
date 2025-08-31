@@ -27,10 +27,52 @@ Example context (json):
 }}
 
 <div class="ai-glossary-definition">
-<p><strong>Definition:</strong>{{definition_en}}<span>({{gender_or_article}})</span></p>
-<p><strong>Français:</strong>{{translation_fr}}</p>
-<p><strong>Exemple:</strong></p>
-<blockquote>
-    {{example_en}}
-</blockquote>
+    <div class="row align-items-start mb-3">
+        <div class="col-auto">
+            <strong class="text-primary">{{#str}}glossary_generate_definitions:definitionitem, aiplacement_callextensions{{/str}}</strong>
+        </div>
+        <div class="col">
+            <span class="me-2">{{definition_en}}</span>
+            <span class="badge bg-secondary">{{gender_or_article}}</span>
+        </div>
+    </div>
+
+    <div class="row align-items-start mb-3">
+        <div class="col-auto">
+            <strong class="text-primary">{{#str}}glossary_generate_definitions:frenchdefinitionitem, aiplacement_callextensions{{/str}}</strong>
+        </div>
+        <div class="col">
+            {{translation_fr}}
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <strong class="text-primary">{{#str}}glossary_generate_definitions:frenchdefinitionexample, aiplacement_callextensions{{/str}}</strong>
+        <blockquote class="blockquote-footer mt-2">
+            {{example_en}}
+        </blockquote>
+    </div>
+
+    {{#imageurl}}
+    <div class="text-center mt-3 mb-3">
+        <img src="{{imageurl}}" alt="{{word}}" class="img-fluid rounded shadow-sm" style="max-height: 300px;">
+    </div>
+    {{/imageurl}}
+
+    {{#audiourl}}
+    <div class="mt-3 mb-3">
+        <div class="card border-light">
+            <div class="card-body py-2">
+                <h6 class="card-title mb-2">
+                    <i class="fa fa-volume-up text-primary me-2"></i>
+                    {{#str}}glossary_generate_definitions:listenpronunciation, aiplacement_callextensions{{/str}}
+                </h6>
+                <audio controls>
+                    <source src="{{audiourl}}" type="audio/mpeg">
+                    {{#str}}glossary_generate_definitions:noaudio, aiplacement_callextensions{{/str}}
+                </audio>
+            </div>
+        </div>
+    </div>
+    {{/audiourl}}
 </div>

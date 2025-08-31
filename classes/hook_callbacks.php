@@ -46,7 +46,7 @@ class hook_callbacks {
      */
     public static function after_http_headers(after_http_headers $hook): void {
         $extension = extension_factory::create($hook->renderer->get_page()->context);
-        if ($extension  && $extension->is_enabled()) {
+        if ($extension && $extension->is_enabled()) {
             $extension->after_http_headers($hook);
         }
     }

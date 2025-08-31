@@ -18,6 +18,7 @@ namespace aiplacement_callextensions\local\mod_glossary;
 
 use aiplacement_callextensions\ai_action;
 use aiplacement_callextensions\local\base;
+use aiplacement_callextensions\utils;
 use core\hook\output\after_http_headers;
 use core\hook\output\before_footer_html_generation;
 use local_aixtension\aiactions\convert_text_to_speech;
@@ -39,9 +40,18 @@ class extension extends base {
 
     #[\Override]
     public function after_http_headers(after_http_headers $hook): void {
-        if (!has_capability('mod/glossary:manageentries', $this->context)) {
+        if (
+            !utils::preflight_checks_for_module(
+                $this->context,
+                'glossary',
+                ['mod/glossary:manageentries'],
+                ['mod-glossary-view'],
+                $hook->renderer->get_page(),
+            )
+        ) {
             return;
         }
+
         $context = [
             "cmid" => $this->context->instanceid,
             'contextid' => $this->context->id,
@@ -106,12 +116,14 @@ class extension extends base {
             'imagesize',
             get_string('glossary_generate_definitions:imagesize', 'aiplacement_callextensions'),
             [
+                '128x128' => '128x128',
+                '256x256' => '256x256',
                 '512x512' => '512x512',
                 '1024x1024' => '1024x1024',
             ]
         );
         $mform->setType('imagesize', PARAM_TEXT);
-        $mform->setDefault('imagesize', '512x512');
+        $mform->setDefault('imagesize', '256x256');
         $mform->addElement(
             'header',
             'soundparamheader',
@@ -149,23 +161,6 @@ class extension extends base {
         }
     }
 
-    #[\Override]
-    public function actiondata_to_string(ai_action $action): string {
-        $data = $action->get('actiondata') ?? [];
-
-        if ($action->get('actionname') === 'glossary_generate_definitions') {
-            $wordlist = $data['wordlist'] ?? [];
-            $content = get_string(
-                'glossary_generate_definitions:wordlistinfo',
-                'aiplacement_callextensions',
-                implode(
-                    ', ',
-                    $wordlist
-                )
-            );
-        }
-        return $content;
-    }
     /**
      * Process generate definition action.
      *
@@ -182,14 +177,23 @@ class extension extends base {
             ];
         }
         $datakeys = [
-          'wordlist',
+            'wordlist',
             'imagesize',
             'imageprompt',
             'textprompt',
             'voice',
         ];
         $launchdata = array_intersect_key((array) $data, array_flip($datakeys));
-        $launchdata['wordlist'] = array_filter(array_map('trim', explode("\n", $launchdata['wordlist'])));
+        $wordlist = array_filter(array_map('trim', explode("\n", $launchdata['wordlist'])));
+        $wordlist = array_map(function ($line) {
+            if (strpos($line, '=') !== false) {
+                [$term, $frenchdefinition] = explode('=', $line, 2);
+                return trim($term);
+            }
+            return trim($line);
+        }, $wordlist);
+        $wordlist = array_values(array_unique($wordlist));
+        $launchdata['wordlist'] = $wordlist;
         $this->launch_action('glossary_generate_definitions', $launchdata);
         return [
             'success' => true,
@@ -217,6 +221,24 @@ class extension extends base {
             'success' => true,
             'action_type' => $action,
         ];
+    }
+
+    #[\Override]
+    public function actiondata_to_string(ai_action $action): string {
+        $data = $action->get('actiondata') ?? [];
+
+        if ($action->get('actionname') === 'glossary_generate_definitions') {
+            $wordlist = $data['wordlist'] ?? [];
+            $content = get_string(
+                'glossary_generate_definitions:wordlistinfo',
+                'aiplacement_callextensions',
+                implode(
+                    ', ',
+                    $wordlist
+                )
+            );
+        }
+        return $content;
     }
 
     #[\Override]
@@ -249,9 +271,9 @@ class extension extends base {
         }
         $params = $aiaction->get('actiondata') ?? [];
         $wordlist = $params['wordlist'] ?? '';
-        [$imagewidth, $imageheight] = explode('x', $params['imagesize'] ?? '512x512');
-        $imagewidth = $imagewidth ?: 512;
-        $imageheight = $imageheight ?: 512;
+        [$imagewidth, $imageheight] = explode('x', $params['imagesize'] ?? '256x256');
+        $imagewidth = $imagewidth ?: 256;
+        $imageheight = $imageheight ?: 256;
 
         // Process each word.
         $manager = new \core_ai\manager();
@@ -259,13 +281,20 @@ class extension extends base {
         $glossaryid = $glossarycm->instance;
         $totalwords = count($wordlist);
         $currentindex = 0;
-        $textproompt = $params['textprompt'] ?? get_string('glossary_generate_definitions:textpromptdefault', 'aiplacement_callextensions');
-        $imageprompt = $params['imageprompt'] ?? get_string('glossary_generate_definitions:imagepromptdefault', 'aiplacement_callextensions');
+        $textproompt =
+            $params['textprompt'] ?? get_string('glossary_generate_definitions:textpromptdefault', 'aiplacement_callextensions');
+        $imageprompt =
+            $params['imageprompt'] ?? get_string('glossary_generate_definitions:imagepromptdefault', 'aiplacement_callextensions');
         foreach ($wordlist as $word) {
             $word = trim($word);
             if (!empty($word)) {
-                $aiaction->set('statustext', get_string('glossary_generate_definitions:processingword', 'aiplacement_callextensions', $word));
-                $aiaction->save();
+                $aiaction->set_progress_status(
+                    statustext: get_string(
+                        'glossary_generate_definitions:processingword',
+                        'aiplacement_callextensions',
+                        $word
+                    )
+                );
                 // Create a new glossary entry.
                 $entryobj = new \stdClass();
                 $entryobj->concept = trim($word);
@@ -285,18 +314,21 @@ class extension extends base {
                     prompttext: "{$textproompt}\n\nWORD\n{$word}",
                 );
                 $response = $manager->process_action($action);
-                $description = '';
+                $data = [];
                 if ($response->get_success()) {
                     $description = $response->get_response_data()['generatedcontent'];
                     if (json_decode($description) !== null) {
-                        $description = json_decode($description, true);
-                        $description = $OUTPUT->render_from_template(
-                            'aiplacement_callextensions/mod_glossary/glossary_entry',
-                            $description
-                        );
+                        $data = json_decode($description, true);
                     }
                 } else {
-                    $description = "<p>$word</p>";
+                    $aiaction->set_progress_status(
+                        statustext: get_string(
+                            'glossary_generate_definitions:errorprocessingword',
+                            'aiplacement_callextensions',
+                            $word
+                        )
+                    );
+                    continue;
                 }
                 $action = new \core_ai\aiactions\generate_image(
                     contextid: $this->context->id,
@@ -325,12 +357,15 @@ class extension extends base {
                     $audiourl = $this->copy_file($entryid, $draftfile);
                 }
 
-                if ($imageurl) {
-                    $description .= "<br><img src='{$imageurl->out()}' alt='{$word}' width=\"$imagewidth\" height=\"$imageheight\">";
-                }
-                if ($audiourl) {
-                    $description .= "<hr><audio controls><source src='{$audiourl->out()}' type='audio/mpeg'>Your browser does not support the audio element.</audio>";
-                }
+                $data['imageurl'] = $imageurl ? $imageurl->out(false) : '';
+                $data['audiourl'] = $audiourl ? $audiourl->out(false) : '';
+                $data['imagewidth'] = $imagewidth;
+                $data['imageheight'] = $imageheight;
+                $data['word'] = $word;
+                $description = $OUTPUT->render_from_template(
+                    'aiplacement_callextensions/mod_glossary/glossary_entry',
+                    $data
+                );
                 $description = file_rewrite_pluginfile_urls(
                     $description,
                     'pluginfile.php',
@@ -341,7 +376,7 @@ class extension extends base {
                 );
                 $DB->set_field('glossary_entries', 'definition', $description, ['id' => $entryid]);
             }
-            $aiaction->set('progress', (int) (($currentindex + 1) / $totalwords * 100));
+            $aiaction->set_progress_status((int) (($currentindex + 1) / $totalwords * 100));
             $aiaction->save();
         }
     }

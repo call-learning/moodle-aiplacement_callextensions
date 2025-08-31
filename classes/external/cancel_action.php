@@ -66,7 +66,10 @@ class cancel_action extends external_api {
                 $data = $task->get_custom_data();
                 if (isset($data->actionid) && $data->actionid == $actionid) {
                     $lockedtask = \core\task\manager::get_adhoc_task($task->get_id());
-                    \core\task\manager::adhoc_task_complete($lockedtask);
+                    if ($lockedtask) {
+                        // We found the task, we can delete it.
+                        \core\task\manager::adhoc_task_complete($lockedtask);
+                    }
                 }
             }
             return ['hascancelled' => true];

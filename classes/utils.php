@@ -17,6 +17,7 @@ namespace aiplacement_callextensions;
 
 
 use aiplacement_callextensions\local\base;
+use moodle_page;
 
 /**
  * AI Placement course assist utils.
@@ -33,7 +34,7 @@ class utils {
      * @param \stdClass $user The user for whom the check is being performed.
      * @return bool True if AI Placement course assist is available, false otherwise.
      */
-    public static function is_assist_available(\context $contex, \stdClass $user): bool {
+    public static function is_assist_available(\context $context, \stdClass $user): bool {
         [$plugintype, $pluginname] = explode('_', \core_component::normalize_componentname('aiplacement_callextensions'), 2);
         $manager = \core_plugin_manager::resolve_plugininfo_class($plugintype);
         if (!$manager::is_plugin_enabled($pluginname)) {
@@ -57,10 +58,17 @@ class utils {
      *
      * @param \context $context The context for which the assist UI is being requested.
      * @param string $modulename
+     * @param array $capabilities The capabilities required to use the assist UI.
+     * @param string $currentpagelayout The current page layout.
      * @return bool representing the matching \aiplacement_callextensions\output\assist_ui
-     * @throws \coding_exception
      */
-    public static function preflight_checks_for_module(\context $context, string $modulename): bool {
+    public static function preflight_checks_for_module(
+        \context $context,
+        string $modulename,
+        array $capabilities,
+        array $pagetypeallowed = ['mod-*'],
+        moodle_page $page,
+    ): bool {
         $cm = get_coursemodule_from_id(
             $modulename,
             $context->instanceid,
@@ -72,6 +80,19 @@ class utils {
             // If we cannot find the course module, we cannot proceed.
             return false;
         }
+        if (!has_all_capabilities($capabilities, $context)) {
+            return false;
+        }
+        if (in_array($page->pagelayout, ['maintenance', 'print', 'redirect', 'embedded'])) {
+            // Do not try to show assist UI inside iframe, in maintenance mode,
+            // when printing, or during redirects.
+            return false;
+        }
+        if (in_array($page->pagetype, $pagetypeallowed) === false) {
+            // Only load the assist UI for allowed page types.
+            return false;
+        }
+
         if ($cm->modname !== $modulename) {
             // Only load the assist UI for glossary modules.
             return false;
