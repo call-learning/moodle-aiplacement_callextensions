@@ -333,7 +333,11 @@ class extension extends base {
                 $action = new \core_ai\aiactions\generate_image(
                     contextid: $this->context->id,
                     userid: $this->user->id,
-                    prompttext: "{$imageprompt}\n\nWORD\n{$word}",
+                    prompttext: "{$imageprompt}" . get_string(
+                        'glossary_generate_definitions:imagepromptword',
+                        'aiplacement_callextensions',
+                        $word
+                    ),
                     quality: $params['quality'] ?? 'standard',
                     aspectratio: $params['aspectratio'] ?? 'square',
                     numimages: 1,

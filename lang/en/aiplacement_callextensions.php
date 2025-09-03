@@ -49,10 +49,11 @@ $string['glossary_generate_definitions:definitionexample'] = 'Example: ';
 $string['glossary_generate_definitions:definitionitem'] = 'Definition: ';
 $string['glossary_generate_definitions:frenchdefinitionitem'] = 'Français: ';
 $string['glossary_generate_definitions:imageprompt'] = 'Image prompt for image generation';
-$string['glossary_generate_definitions:imagepromptdefault'] = 'Create a simple, clear and engaging image
- that illustrates the meaning of the word. The image should be suitable for an educational context. Important : the image should NOT
- contain any text.';
+$string['glossary_generate_definitions:imagepromptdefault'] = 'Create a simple, clear and engaging image that illustrates
+the meaning of the word. The image should be suitable for children. It should use a cartoon vector style and vivid colors.
+Important : the image should NOT contain any text.';
 $string['glossary_generate_definitions:imagepromptheader'] = 'Image prompt settings';
+$string['glossary_generate_definitions:imagepromptword'] = 'The word to illustrate is: {$a}';
 $string['glossary_generate_definitions:imagesize'] = 'Image size';
 $string['glossary_generate_definitions:listenpronunciation'] = 'Listen to the pronunciation:';
 $string['glossary_generate_definitions:listenpronunciationexample'] = 'Listen to the example:';
