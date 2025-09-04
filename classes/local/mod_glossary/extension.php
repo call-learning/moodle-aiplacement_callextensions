@@ -330,6 +330,8 @@ class extension extends base {
                     );
                     continue;
                 }
+                // Here we try to be agnostic to exact model used... but if we use the openai_extension model this
+                // should work better as dall-e 3 does not give good results for image generation.
                 $action = new \core_ai\aiactions\generate_image(
                     contextid: $this->context->id,
                     userid: $this->user->id,
