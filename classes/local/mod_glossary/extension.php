@@ -19,9 +19,11 @@ namespace aiplacement_callextensions\local\mod_glossary;
 use aiplacement_callextensions\ai_action;
 use aiplacement_callextensions\local\base;
 use aiplacement_callextensions\utils;
+use core\exception\moodle_exception;
 use core\hook\output\after_http_headers;
 use core\hook\output\before_footer_html_generation;
 use local_aixtension\aiactions\convert_text_to_speech;
+use Matrix\Exception;
 use moodle_url;
 
 /**
@@ -185,13 +187,6 @@ class extension extends base {
         ];
         $launchdata = array_intersect_key((array) $data, array_flip($datakeys));
         $wordlist = array_filter(array_map('trim', explode("\n", $launchdata['wordlist'])));
-        $wordlist = array_map(function ($line) {
-            if (strpos($line, '=') !== false) {
-                [$term, $frenchdefinition] = explode('=', $line, 2);
-                return trim($term);
-            }
-            return trim($line);
-        }, $wordlist);
         $wordlist = array_values(array_unique($wordlist));
         $launchdata['wordlist'] = $wordlist;
         $this->launch_action('glossary_generate_definitions', $launchdata);
@@ -246,21 +241,207 @@ class extension extends base {
         $errors = [];
         switch ($actionname) {
             case 'glossary_generate_definitions':
-                if (empty(trim($data['wordlist'] ?? ''))) {
-                    $errors['wordlist'] =
-                        get_string('glossary_generate_definitions:wordlistrequired', 'aiplacement_callextensions');
-                }
-                // Check that there is at least one word in the list.
-                $words = array_filter(array_map('trim', explode("\n", $data['wordlist'])));
-                if (empty($words)) {
-                    $errors['wordlist'] =
-                        get_string('glossary_generate_definitions:wordlistatleastone', 'aiplacement_callextensions');
+                $wordlisterrors = $this->validate_wordlist($data['wordlist'] ?? '');
+                if (!empty($wordlisterrors)) {
+                    $errors['wordlist'] = join( " ", $wordlisterrors);
                 }
                 break;
             default:
                 break;
         }
         return $errors;
+    }
+
+    /**
+     * Validate the wordlist input.
+     *
+     * @param string $wordlist The wordlist input.
+     * @return array An array of error messages, empty if valid.
+     */
+    private function validate_wordlist(string $wordlist): array {
+        $errors = [];
+        if (empty(trim($wordlist ?? ''))) {
+            $errors[] =
+                get_string('glossary_generate_definitions:wordlistrequired', 'aiplacement_callextensions');
+        }
+        // Check that there is at least one word in the list.
+        $words = array_filter(array_map('trim', explode("\n", $wordlist)));
+        if (empty($words)) {
+            $errors[] =
+                get_string('glossary_generate_definitions:wordlistatleastone', 'aiplacement_callextensions');
+        }
+        ['ok' => $ok, 'errors' => $parsingerrors] = $this->parse_wordlist($wordlist);
+        $errors = array_merge($errors, $parsingerrors);
+        return $errors;
+    }
+
+    /**
+     * Parse a wordlist in the format: word=french (key1:value1, key2:value2, ...)
+     *
+     *  Accepts lines like:
+     *    word=french
+     *    word(def:definition,ex:example)
+     *    word=french(def:definition,ex:example)
+     *  Values in (...) may be quoted with " to allow commas/parentheses.
+     *
+     *  Validation checks:
+     *   - word must exist, trimmed, and be unique
+     *   - at least one of {french, def, ex, ...meta} must be present
+     *   - only allowed keys inside (...) (configurable)
+     *   - no empty keys or empty values
+     *   - balanced trailing (...) with CSV-style items key:value
+     *   - optional max length constraints (configurable)
+     *   - flags suspicious patterns (e.g., missing colon in meta, stray commas
+     *
+     * @return array The parsed result with 'ok', 'errors', 'warnings', and 'entries'.
+     */
+    private function parse_wordlist(string $text, array $options = []): array {
+        $opts = array_merge([
+            'allowed_keys' => ['def', 'ex', 'pos', 'note'],
+            'max_word_len' => 100,
+            'max_value_len' => 1000,
+            'disallow_empty_values' => true,
+        ], $options);
+
+        $errors = [];
+        $warnings = [];
+        $entries = [];
+        $seenwords = [];
+
+        foreach (preg_split('/\R/u', $text) as $lineno => $raw) {
+            $line = trim($raw);
+            if ($line === '' || str_starts_with(ltrim($line), '#')) continue;
+
+            $result = $this->parse_word($line, $lineno + 1, $opts);
+
+            if (!$result['success']) {
+                $errors = array_merge($errors, $result['errors']);
+                continue;
+            }
+
+            $entry = $result['entry'];
+            $keyci = mb_strtolower($entry['word']);
+
+            if (isset($seenwords[$keyci])) {
+                $errors[] = get_string('glossary_generate_definitions:duplicateword', 'aiplacement_callextensions', [
+                    'word' => $entry['word'], 'line1' => $seenwords[$keyci], 'line2' => $lineno + 1,
+                ]);
+                continue;
+            }
+
+            $seenwords[$keyci] = $lineno + 1;
+            $entries[] = $entry;
+        }
+
+        return ['ok' => empty($errors), 'errors' => $errors, 'warnings' => $warnings, 'entries' => $entries];
+    }
+
+
+    /**
+     * Parse a single word line in the format: word=french (key1:value1, key2:value2, ...)
+     *
+     * @param string $wordinline The line to parse
+     * @param int $lineno The line number for error reporting
+     * @param array $options Parsing options
+     * @return array Result with 'success', 'entry', and 'errors'
+     */
+    private function parse_word(string $wordinline, int $lineno, array $options = []): array {
+        $options = array_merge([
+            'allowed_keys' => ['def', 'ex', 'pos', 'note'],
+            'max_word_len' => 100,
+            'max_value_len' => 1000,
+            'disallow_empty_values' => true,
+        ], $options);
+        $errors = [];
+
+        $result = $this->extract_words_parent_block($wordinline);
+        if ($result === null) {
+            return [
+                'success' => false,
+                'errors' => [get_string('glossary_generate_definitions:unbalancedparentheses', 'aiplacement_callextensions', $lineno)],
+                'entry' => null
+            ];
+        }
+        [$head, $parentinside] = $result;
+        [$word, $french] = strpos($head, '=') !== false ? explode('=', $head, 2) : [$head, null];
+        $word = trim($word);
+        $french = $french !== null ? trim($french) : null;
+
+        if ($word === '' || mb_strlen($word) > $options['max_word_len']) {
+            $errors[] = get_string('glossary_generate_definitions:wordtoolong', 'aiplacement_callextensions', ['line' => $lineno]);
+        }
+
+        $meta = [];
+        if ($parentinside) {
+            foreach (str_getcsv($parentinside, ',', '"', '\\') as $item) {
+                [$k, $v] = strpos($item, ':') !== false ? explode(':', $item, 2) : [null, null];
+                $k = trim($k);
+                $v = trim($v);
+
+                if (!$k || !in_array($k, $options['allowed_keys'], true) || ($options['disallow_empty_values'] && $v === '')) {
+                    $errors[] = get_string('glossary_generate_definitions:invalidmetakey', 'aiplacement_callextensions', ['line' => $lineno]);
+                    continue;
+                }
+                $meta[$k] = $v;
+            }
+        }
+
+        if ($french !== null && (mb_strlen($french) > $options['max_value_len'] || ($options['disallow_empty_values'] && $french === ''))) {
+            $errors[] = get_string('glossary_generate_definitions:frenchvaluetoolong', 'aiplacement_callextensions', ['line' => $lineno]);
+        }
+
+        if (!empty($errors)) {
+            return ['success' => false, 'errors' => $errors, 'entry' => null];
+        }
+
+        return [
+            'success' => true,
+            'errors' => [],
+            'entry' => [
+                'word' => $word,
+                'french' => $french ?: null, // For now we will ignore the french translation.
+                'meta' => $meta,
+                '_line' => $lineno,
+            ]
+        ];
+    }
+    /**
+     * Extract a single trailing "(...)" block if present, honoring quotes.
+     *
+     * @param string $line The line to parse
+     * @return array|null Array with [head, parentinside] or null if unbalanced quotes/parentheses
+     */
+    function extract_words_parent_block(string $line): ?array {
+        $line = rtrim($line);
+        $lastclose = strrpos($line, ')');
+        if ($lastclose === false) return [$line, null];
+
+        $inquotes = $escape = false;
+        $stack = $lastopen = 0;
+
+        for ($i = 0, $len = strlen($line); $i < $len; $i++) {
+            $ch = $line[$i];
+            if ($escape) {
+                $escape = false;
+                continue;
+            }
+            if ($ch === '\\') $escape = true;
+            elseif ($ch === '"') $inquotes = !$inquotes;
+            elseif (!$inquotes) {
+                if ($ch === '(') {
+                    if ($stack === 0) $lastopen = $i;
+                    $stack++;
+                } elseif ($ch === ')' && $stack > 0) {
+                    $stack--;
+                    if ($stack === 0 && rtrim(substr($line, $i + 1)) === '') {
+                        return [rtrim(substr($line, 0, $lastopen)), substr($line, $lastopen + 1, $i - $lastopen - 1)];
+                    }
+                }
+            }
+        }
+
+        if ($inquotes) return null; // Return null instead of throwing exception
+        return [$line, null];
     }
 
     #[\Override]
@@ -285,9 +466,11 @@ class extension extends base {
             $params['textprompt'] ?? get_string('glossary_generate_definitions:textpromptdefault', 'aiplacement_callextensions');
         $imageprompt =
             $params['imageprompt'] ?? get_string('glossary_generate_definitions:imagepromptdefault', 'aiplacement_callextensions');
-        foreach ($wordlist as $word) {
-            $word = trim($word);
-            if (!empty($word)) {
+        foreach ($wordlist as $lineno => $wordfromlist) {
+            // Word is maybe a bit of a complex structure so let's parse it properly.
+            ['success' => $ok, 'errors' => $parsingerrors, 'entry' => $entry] = $this->parse_word($wordfromlist, $lineno + 1);
+            if ($ok && $entry) {
+                $word = $entry['word'];
                 $aiaction->set_progress_status(
                     statustext: get_string(
                         'glossary_generate_definitions:processingword',
@@ -362,7 +545,12 @@ class extension extends base {
                     $draftfile = $response->get_response_data()['draftfile'];
                     $audiourl = $this->copy_file($entryid, $draftfile);
                 }
-                $example  = $data['example_en'] ?? '';
+                if (!empty($entry['meta']['ex'])) {
+                    $example = $entry['meta']['ex']; // Example provided in the wordlist.
+                    $data['example_en'] = $example;
+                } else {
+                    $example = $data['example_en'] ?? '';
+                }
                 if (!empty($example)) {
                     $action = new convert_text_to_speech(
                         contextid: $this->context->id,

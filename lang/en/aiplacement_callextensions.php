@@ -43,11 +43,15 @@ $string['actionstatuserror'] = 'The action has failed with an error.';
 $string['actionstatusfinished'] = 'The action has been completed successfully.';
 $string['actionstatusstarting'] = 'Starting...';
 $string['aiplacement/callextensions:use'] = 'Use AI Placement call extensions';
+$string['conceptrequired'] = 'Concept is required';
 $string['glossary_generate_definitions'] = 'Generate definitions, images and sound for a list of words';
 $string['glossary_generate_definitions:actionstarted'] = 'The action has been started';
 $string['glossary_generate_definitions:definitionexample'] = 'Example: ';
 $string['glossary_generate_definitions:definitionitem'] = 'Definition: ';
+$string['glossary_generate_definitions:duplicateword'] = 'Duplicate word "{$a->word}" on lines {$a->line1} and {$a->line2}';
+$string['glossary_generate_definitions:errorprocessingword'] = 'Error processing word: {$a}';
 $string['glossary_generate_definitions:frenchdefinitionitem'] = 'Français: ';
+$string['glossary_generate_definitions:frenchvaluetoolong'] = 'French value too long on line {$a}';
 $string['glossary_generate_definitions:imageprompt'] = 'Image prompt for image generation';
 $string['glossary_generate_definitions:imagepromptdefault'] = 'Create a simple, clear and engaging image that illustrates
 the meaning of the word. The image should be suitable for children. It should use a cartoon vector style and vivid colors.
@@ -55,6 +59,7 @@ Important : the image should NOT contain any text.';
 $string['glossary_generate_definitions:imagepromptheader'] = 'Image prompt settings';
 $string['glossary_generate_definitions:imagepromptword'] = 'The word to illustrate is: {$a}';
 $string['glossary_generate_definitions:imagesize'] = 'Image size';
+$string['glossary_generate_definitions:invalidmetakey'] = 'Invalid metadata key on line {$a}';
 $string['glossary_generate_definitions:listenpronunciation'] = 'Listen to the pronunciation:';
 $string['glossary_generate_definitions:listenpronunciationexample'] = 'Listen to the example:';
 $string['glossary_generate_definitions:noaudio'] = 'Your browser does not support the audio element.';
@@ -83,14 +88,19 @@ RULES
 - Do not invent multiple senses; pick the most common educational sense.
 - Avoid idioms, slang, and rare usages.';
 $string['glossary_generate_definitions:textpromptheader'] = 'Text prompt settings';
+$string['glossary_generate_definitions:unbalancedparentheses'] = 'Unbalanced parentheses on line {$a}';
 $string['glossary_generate_definitions:voice'] = 'Voice for sound generation';
 $string['glossary_generate_definitions:wordlist'] = 'Word list';
 $string['glossary_generate_definitions:wordlist_help'] = 'A list of words to generate definitions, images and sound for.';
+$string['glossary_generate_definitions:wordlistatleastone'] = 'At least one word must be provided';
 $string['glossary_generate_definitions:wordlistinfo'] = 'List of words: {$a}';
+$string['glossary_generate_definitions:wordlistrequired'] = 'Word list is required';
+$string['glossary_generate_definitions:wordtoolong'] = 'Word too long on line {$a}';
 $string['pleasewait'] = 'Please wait...';
 $string['pluginname'] = 'AI Extension';
 $string['privacy:metadata'] = 'The AI Placement Call Extensions plugin does not store any personal data.';
 $string['progressfor'] = 'Progress for {$a}';
+$string['promptrequired'] = 'Prompt is required';
 $string['quiz_generate_questions'] = 'Generate questions for a quiz and import them in a gift format';
 $string['quiz_generate_questions:actionstarted'] = 'The action has been started';
 $string['quiz_generate_questions:additionaloptionsheader'] = 'Additional options';
