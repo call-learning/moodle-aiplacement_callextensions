@@ -25,6 +25,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['action:book_generate_definitions'] = 'Generate definition';
 $string['action:glossary_generate_definitions'] = 'Generate definition';
 $string['action:quiz_generate_questions'] = 'Generate questions';
 $string['action:status_cancelled'] = 'Cancelled';
@@ -43,7 +44,60 @@ $string['actionstatuserror'] = 'The action has failed with an error.';
 $string['actionstatusfinished'] = 'The action has been completed successfully.';
 $string['actionstatusstarting'] = 'Starting...';
 $string['aiplacement/callextensions:use'] = 'Use AI Placement call extensions';
+$string['book_generate_definitions'] = 'Generate definitions, images and sound for a list of words';
+$string['book_generate_definitions:actionstarted'] = 'The action has been started';
+$string['book_generate_definitions:definitionexample'] = 'Example: ';
+$string['book_generate_definitions:definitionitem'] = 'Definition: ';
+$string['book_generate_definitions:duplicateword'] = 'Duplicate word "{$a->word}" on lines {$a->line1} and {$a->line2}';
+$string['book_generate_definitions:errorprocessingword'] = 'Error processing word: {$a}';
+$string['book_generate_definitions:frenchdefinitionitem'] = 'Français: ';
+$string['book_generate_definitions:frenchvaluetoolong'] = 'French value too long on line {$a}';
+$string['book_generate_definitions:imageprompt'] = 'Image prompt for image generation';
+$string['book_generate_definitions:imagepromptdefault'] = 'Create a simple, clear and engaging image that illustrates
+the meaning of the word. The image should be suitable for children. It should use a cartoon vector style and vivid colors.
+Important : the image should NOT contain any text.';
+$string['book_generate_definitions:imagepromptheader'] = 'Image prompt settings';
+$string['book_generate_definitions:imagepromptword'] = 'The word to illustrate is: {$a}';
+$string['book_generate_definitions:imagesize'] = 'Image size';
+$string['book_generate_definitions:invalidmetakey'] = 'Invalid metadata key on line {$a}';
+$string['book_generate_definitions:listenpronunciation'] = 'Listen to the pronunciation:';
+$string['book_generate_definitions:listenpronunciationexample'] = 'Listen to the example:';
+$string['book_generate_definitions:noaudio'] = 'Your browser does not support the audio element.';
+$string['book_generate_definitions:processingword'] = 'Processing word: {$a}';
+$string['book_generate_definitions:soundparamheader'] = 'Sound generation settings';
+$string['book_generate_definitions:textprompt'] = 'Text prompt for definition generation';
+$string['book_generate_definitions:textpromptdefault'] = '
+Given a single English word, produce:
+1) A concise, learner-friendly definition in English.
+2) A French translation.
+3) One simple example sentence in English.
+
+OUTPUT FORMAT
+Return ONLY a single JSON object with these keys:
+- "word": the input word (string)
+- "definition_en": the definition in English (string, 12–30 words, no jargon)
+- "translation_fr": the French translation of the word (string; if noun, include correct gender/article)
+- "gender_or_article": the English gender/article tag for nouns (string; "m", "f", "m/f", "n/a" for non-nouns, adv. for adverbs)
+- "example_en": a short, natural English example sentence using the word (string)
+
+RULES
+- Output valid JSON only. No markdown, no comments, no extra text.
+- Escape all quotes properly for JSON.
+- Keep it concise and clear for learners (A2–B1 level).
+- If the word is not a noun, set "gender_or_article" to "n/a" and leave the span content as "n/a".
+- Do not invent multiple senses; pick the most common educational sense.
+- Avoid idioms, slang, and rare usages.';
+$string['book_generate_definitions:textpromptheader'] = 'Text prompt settings';
+$string['book_generate_definitions:unbalancedparentheses'] = 'Unbalanced parentheses on line {$a}';
+$string['book_generate_definitions:voice'] = 'Voice for sound generation';
+$string['book_generate_definitions:wordlist'] = 'Word list';
+$string['book_generate_definitions:wordlist_help'] = 'A list of words to generate definitions, images and sound for.';
+$string['book_generate_definitions:wordlistatleastone'] = 'At least one word must be provided';
+$string['book_generate_definitions:wordlistinfo'] = 'List of words: {$a}';
+$string['book_generate_definitions:wordlistrequired'] = 'Word list is required';
+$string['book_generate_definitions:wordtoolong'] = 'Word too long on line {$a}';
 $string['conceptrequired'] = 'Concept is required';
+
 $string['glossary_generate_definitions'] = 'Generate definitions, images and sound for a list of words';
 $string['glossary_generate_definitions:actionstarted'] = 'The action has been started';
 $string['glossary_generate_definitions:definitionexample'] = 'Example: ';

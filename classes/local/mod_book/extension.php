@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace aiplacement_callextensions\local\mod_glossary;
+namespace aiplacement_callextensions\local\mod_book;
 
 use aiplacement_callextensions\ai_action;
 use aiplacement_callextensions\local\base;
@@ -31,7 +31,7 @@ use MoodleQuickForm;
 use stdClass;
 
 /**
- * Output handler for the glossary assist UI.
+ * Output handler for the book assist UI.
  *
  * @package    aiplacement_callextensions
  * @copyright  2025 Laurent David <laurent@call-learning.fr>
@@ -49,9 +49,9 @@ class extension extends base {
         if (
             !utils::preflight_checks_for_module(
                 $this->context,
-                'glossary',
-                ['mod/glossary:manageentries'],
-                ['mod-glossary-view'],
+                'book',
+                ['mod/book:edit'],
+                ['mod-book-view'],
                 $hook->renderer->get_page(),
             )
         ) {
@@ -61,10 +61,10 @@ class extension extends base {
         $context = [
             "cmid" => $this->context->instanceid,
             'contextid' => $this->context->id,
-            "actionname" => 'glossary_generate_definitions',
-            "component" => 'mod_glossary',
-            "buttontext" => get_string('action:glossary_generate_definitions', 'aiplacement_callextensions'),
-            "buttonlabel" => get_string('action:glossary_generate_definitions', 'aiplacement_callextensions'),
+            "actionname" => 'book_generate_definitions',
+            "component" => 'mod_book',
+            "buttontext" => get_string('action:book_generate_definitions', 'aiplacement_callextensions'),
+            "buttonlabel" => get_string('action:book_generate_definitions', 'aiplacement_callextensions'),
         ];
         $html = $hook->renderer->render_from_template('aiplacement_callextensions/action_button', $context);
         $hook->add_html($html);
@@ -75,52 +75,52 @@ class extension extends base {
         $mform->addElement(
             'textarea',
             'wordlist',
-            get_string('glossary_generate_definitions:wordlist', 'aiplacement_callextensions'),
+            get_string('book_generate_definitions:wordlist', 'aiplacement_callextensions'),
             ['rows' => 10, 'cols' => 50]
         );
         $mform->setType('wordlist', PARAM_TEXT);
-        $mform->addHelpButton('wordlist', 'glossary_generate_definitions:wordlist', 'aiplacement_callextensions');
+        $mform->addHelpButton('wordlist', 'book_generate_definitions:wordlist', 'aiplacement_callextensions');
         // Additional elements for context and optional parameters.
         $mform->addElement(
             'header',
             'textpromptheader',
-            get_string('glossary_generate_definitions:textpromptheader', 'aiplacement_callextensions')
+            get_string('book_generate_definitions:textpromptheader', 'aiplacement_callextensions')
         );
         $mform->setExpanded('textpromptheader', false);
         $mform->addElement(
             'textarea',
             'textprompt',
-            get_string('glossary_generate_definitions:textprompt', 'aiplacement_callextensions'),
+            get_string('book_generate_definitions:textprompt', 'aiplacement_callextensions'),
             ['rows' => 3, 'cols' => 50]
         );
         $mform->setType('textprompt', PARAM_TEXT);
         $mform->setDefault(
             'textprompt',
-            get_string('glossary_generate_definitions:textpromptdefault', 'aiplacement_callextensions')
+            get_string('book_generate_definitions:textpromptdefault', 'aiplacement_callextensions')
         );
 
         // Additional elements for image generation.
         $mform->addElement(
             'header',
             'imagepromptheader',
-            get_string('glossary_generate_definitions:imagepromptheader', 'aiplacement_callextensions')
+            get_string('book_generate_definitions:imagepromptheader', 'aiplacement_callextensions')
         );
         $mform->setExpanded('imagepromptheader', false);
         $mform->addElement(
             'textarea',
             'imageprompt',
-            get_string('glossary_generate_definitions:imageprompt', 'aiplacement_callextensions'),
+            get_string('book_generate_definitions:imageprompt', 'aiplacement_callextensions'),
             ['rows' => 3, 'cols' => 50]
         );
         $mform->setType('imageprompt', PARAM_TEXT);
         $mform->setDefault(
             'imageprompt',
-            get_string('glossary_generate_definitions:imagepromptdefault', 'aiplacement_callextensions')
+            get_string('book_generate_definitions:imagepromptdefault', 'aiplacement_callextensions')
         );
         $mform->addElement(
             'select',
             'imagesize',
-            get_string('glossary_generate_definitions:imagesize', 'aiplacement_callextensions'),
+            get_string('book_generate_definitions:imagesize', 'aiplacement_callextensions'),
             [
                 '128x128' => '128x128',
                 '256x256' => '256x256',
@@ -133,13 +133,13 @@ class extension extends base {
         $mform->addElement(
             'header',
             'soundparamheader',
-            get_string('glossary_generate_definitions:soundparamheader', 'aiplacement_callextensions')
+            get_string('book_generate_definitions:soundparamheader', 'aiplacement_callextensions')
         );
         $mform->setExpanded('soundparamheader', false);
         $mform->addElement(
             'select',
             'voice',
-            get_string('glossary_generate_definitions:voice', 'aiplacement_callextensions'),
+            get_string('book_generate_definitions:voice', 'aiplacement_callextensions'),
             [
                 'alloy' => 'Alloy',
                 'ash' => 'Ash',
@@ -160,7 +160,7 @@ class extension extends base {
     #[\Override]
     public function process_action_data(object $data, string $action): array {
         switch ($action) {
-            case 'glossary_generate_definitions':
+            case 'book_generate_definitions':
                 return $this->process_generate_definition($data);
             default:
                 return $this->process_default_action($data, $action);
@@ -193,11 +193,11 @@ class extension extends base {
         $wordlist = array_filter(array_map('trim', explode("\n", $launchdata['wordlist'])));
         $wordlist = array_values(array_unique($wordlist));
         $launchdata['wordlist'] = $wordlist;
-        $this->launch_action('glossary_generate_definitions', $launchdata);
+        $this->launch_action('book_generate_definitions', $launchdata);
         return [
             'success' => true,
             'data' => $launchdata,
-            'message' => get_string('glossary_generate_definitions:actionstarted', 'aiplacement_callextensions'),
+            'message' => get_string('book_generate_definitions:actionstarted', 'aiplacement_callextensions'),
         ];
     }
 
@@ -226,10 +226,10 @@ class extension extends base {
     public function actiondata_to_string(ai_action $action): string {
         $data = $action->get('actiondata') ?? [];
 
-        if ($action->get('actionname') === 'glossary_generate_definitions') {
+        if ($action->get('actionname') === 'book_generate_definitions') {
             $wordlist = $data['wordlist'] ?? [];
             $content = get_string(
-                'glossary_generate_definitions:wordlistinfo',
+                'book_generate_definitions:wordlistinfo',
                 'aiplacement_callextensions',
                 implode(
                     ', ',
@@ -244,7 +244,7 @@ class extension extends base {
     public function validate_action_data(array $data, array $files, string $actionname): array {
         $errors = [];
         switch ($actionname) {
-            case 'glossary_generate_definitions':
+            case 'book_generate_definitions':
                 $wordlisterrors = wordlist_helper::validate_wordlist($data['wordlist'] ?? '');
                 if (!empty($wordlisterrors)) {
                     $errors['wordlist'] = join(" ", $wordlisterrors);
@@ -259,7 +259,7 @@ class extension extends base {
     #[\Override]
     public function execute_action(ai_action $aiaction): void {
         global $DB, $OUTPUT;
-        if ($aiaction->get('actionname') !== 'glossary_generate_definitions') {
+        if ($aiaction->get('actionname') !== 'book_generate_definitions') {
             return;
         }
         $params = $aiaction->get('actiondata') ?? [];
@@ -270,14 +270,15 @@ class extension extends base {
 
         // Process each word.
         $manager = new manager();
-        $glossarycm = get_coursemodule_from_id('glossary', $this->context->instanceid, 0, false, IGNORE_MISSING);
-        $glossaryid = $glossarycm->instance;
+        $bookcm = get_coursemodule_from_id('book', $this->context->instanceid, 0, false, IGNORE_MISSING);
+        $bookid = $bookcm->instance;
         $totalwords = count($wordlist);
         $currentindex = 0;
         $textproompt =
-            $params['textprompt'] ?? get_string('glossary_generate_definitions:textpromptdefault', 'aiplacement_callextensions');
+            $params['textprompt'] ?? get_string('book_generate_definitions:textpromptdefault', 'aiplacement_callextensions');
         $imageprompt =
-            $params['imageprompt'] ?? get_string('glossary_generate_definitions:imagepromptdefault', 'aiplacement_callextensions');
+            $params['imageprompt'] ?? get_string('book_generate_definitions:imagepromptdefault', 'aiplacement_callextensions');
+        $pagenum = $DB->get_field_sql('SELECT MAX(pagenum) FROM {book_chapters} WHERE bookid = ?', [$bookid]) + 1;
         foreach ($wordlist as $lineno => $wordfromlist) {
             // Word is maybe a bit of a complex structure so let's parse it properly.
             ['success' => $ok, 'errors' => $parsingerrors, 'entry' => $entry] =
@@ -286,21 +287,23 @@ class extension extends base {
                 $word = $entry['word'];
                 $aiaction->set_progress_status(
                     statustext: get_string(
-                        'glossary_generate_definitions:processingword',
+                        'book_generate_definitions:processingword',
                         'aiplacement_callextensions',
                         $word
                     )
                 );
-                // Create a new glossary entry.
+                // Create a new book entry.
                 $entryobj = new stdClass();
                 $entryobj->concept = trim($word);
-                $entryobj->definition = "";
-                $entryobj->definitionformat = FORMAT_HTML;
-                $entryobj->glossaryid = $glossaryid;
-                $entryobj->userid = $this->user->id;
+                $entryobj->bookid = $bookid;
+                $entryobj->pagenum = $pagenum;
+                $entryobj->title = trim($word);
+                $entryobj->content = ''; // We will update it later.
+                $entryobj->contentformat = FORMAT_HTML;
+                $entryobj->hidden = 0;
                 $entryobj->timecreated = time();
                 $entryobj->timemodified = time();
-                $entryid = $DB->insert_record('glossary_entries', $entryobj);
+                $chapterid = $DB->insert_record('book_chapters', $entryobj);
                 $imageurl = null;
                 $audiourl = null;
 
@@ -319,7 +322,7 @@ class extension extends base {
                 } else {
                     $aiaction->set_progress_status(
                         statustext: get_string(
-                            'glossary_generate_definitions:errorprocessingword',
+                            'book_generate_definitions:errorprocessingword',
                             'aiplacement_callextensions',
                             $word
                         )
@@ -332,7 +335,7 @@ class extension extends base {
                     contextid: $this->context->id,
                     userid: $this->user->id,
                     prompttext: "{$imageprompt}" . get_string(
-                        'glossary_generate_definitions:imagepromptword',
+                        'book_generate_definitions:imagepromptword',
                         'aiplacement_callextensions',
                         $word
                     ),
@@ -345,11 +348,11 @@ class extension extends base {
                 if ($response->get_success()) {
                     $draftfile = $response->get_response_data()['draftfile'];
                     $imageurl = module_helper::copy_file(
-                        $entryid,
+                        $chapterid,
                         $draftfile,
                         $this->context->id,
-                        'mod_glossary',
-                        'entry'
+                        'mod_book',
+                        'chapter'
                     );
                 }
                 $action = new convert_text_to_speech(
@@ -363,11 +366,11 @@ class extension extends base {
                 if ($response->get_success()) {
                     $draftfile = $response->get_response_data()['draftfile'];
                     $audiourl = module_helper::copy_file(
-                        $entryid,
+                        $chapterid,
                         $draftfile,
                         $this->context->id,
-                        'mod_glossary',
-                        'entry'
+                        'mod_book',
+                        'chapter'
                     );
                 }
                 if (!empty($entry['meta']['ex'])) {
@@ -388,11 +391,11 @@ class extension extends base {
                     if ($response->get_success()) {
                         $draftfile = $response->get_response_data()['draftfile'];
                         $audiourlexample = module_helper::copy_file(
-                            $entryid,
+                            $chapterid,
                             $draftfile,
                             $this->context->id,
-                            'mod_glossary',
-                            'entry'
+                            'mod_book',
+                            'chapter'
                         );
                         $data['audiourlexample'] = $audiourlexample;
                     }
@@ -404,18 +407,18 @@ class extension extends base {
                 $data['imageheight'] = $imageheight;
                 $data['word'] = $word;
                 $description = $OUTPUT->render_from_template(
-                    'aiplacement_callextensions/mod_glossary/glossary_entry',
+                    'aiplacement_callextensions/mod_book/book_chapter',
                     $data
                 );
                 $description = file_rewrite_pluginfile_urls(
                     $description,
                     'pluginfile.php',
                     $this->context->id,
-                    'mod_glossary',
-                    'entry',
-                    $entryid,
+                    'mod_book',
+                    'chapter',
+                    $chapterid,
                 );
-                $DB->set_field('glossary_entries', 'definition', $description, ['id' => $entryid]);
+                $DB->set_field('book_chapters', 'content', $description, ['id' => $chapterid]);
             }
             $aiaction->set_progress_status((int) (($currentindex + 1) / $totalwords * 100));
             $aiaction->save();

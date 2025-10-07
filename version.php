@@ -25,8 +25,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'aiplacement_callextensions';
-$plugin->release = '0.2.1';
-$plugin->version = 2025081021;
+$plugin->release = '0.3.0';
+$plugin->version = 2025100600;
 $plugin->requires = 2024100700.00;
 $plugin->maturity = MATURITY_ALPHA;
 $plugin->dependencies = [
