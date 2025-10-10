@@ -191,6 +191,7 @@ class extension extends base {
         ];
         $launchdata = array_intersect_key((array) $data, array_flip($datakeys));
         $wordlist = array_filter(array_map('trim', explode("\n", $launchdata['wordlist'])));
+        natsort($wordlist);
         $wordlist = array_values(array_unique($wordlist));
         $launchdata['wordlist'] = $wordlist;
         $this->launch_action('book_generate_definitions', $launchdata);

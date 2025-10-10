@@ -75,8 +75,9 @@ class wordlist_helper {
         $errors = [];
         $entries = [];
         $seenwords = [];
-
-        foreach (preg_split('/\R/u', $text) as $lineno => $raw) {
+        $allwords = preg_split('/\R/u', $text);
+        natsort($allwords);
+        foreach ($allwords as $lineno => $raw) {
             $line = trim($raw);
             if ($line === '' || str_starts_with(ltrim($line), '#')) {
                 continue;
